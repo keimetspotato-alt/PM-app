@@ -7,6 +7,7 @@ import {
   signed,
   today,
   validData,
+  payCard,
 } from './domain/finance'
 import type { Data } from './domain/finance'
 import './App.css'
@@ -79,6 +80,19 @@ function App() {
       return
     }
     const id = crypto.randomUUID()
+    if (kind === 'card') {
+      const date = String(f.get('date'))
+      if (!date || date < today()) {
+        setMessage('支払日は今日以降を指定してください。')
+        return
+      }
+      update({
+        cardPayments: [
+          ...(data.cardPayments ?? []),
+          { id, name, amount, date },
+        ],
+      })
+    }
     if (kind === 'asset')
       update({ assets: [...data.assets, { id, name, amount }] })
     if (kind === 'transaction') {
@@ -111,13 +125,16 @@ function App() {
     e.currentTarget.reset()
     setMessage('追加しました。')
   }
-  function remove(collection: 'assets' | 'transactions' | 'plans', id: string) {
+  function remove(
+    collection: 'assets' | 'transactions' | 'plans' | 'cardPayments',
+    id: string,
+  ) {
     setPending({
       text: 'この項目を削除しますか？',
       run: () =>
         setData((d) => ({
           ...d,
-          [collection]: d[collection].filter((item) => item.id !== id),
+          [collection]: (d[collection] ?? []).filter((item) => item.id !== id),
         })),
     })
   }
@@ -264,7 +281,9 @@ function App() {
               <div className="section-heading">
                 <div>
                   <h2>資産のこれから</h2>
-                  <p>現在の残高を起点に、翌月から月単位で計算</p>
+                  <p>
+                    今月までのクレカ未払い分を差し引き、翌月から月単位で計算
+                  </p>
                 </div>
                 <label>
                   期間
@@ -288,7 +307,7 @@ function App() {
               <svg
                 viewBox="0 0 760 220"
                 role="img"
-                aria-label={`${data.years}年間の資産推移。現在${yen(current)}、将来${yen(last.balance)}`}
+                aria-label={`${data.years}年間の資産推移。今月の未払い反映後${yen(points[0].balance)}、将来${yen(last.balance)}`}
               >
                 <line
                   x1="40"
@@ -306,7 +325,7 @@ function App() {
                 />
                 <circle cx="720" cy={y(last.balance)} r="5" fill="#247d69" />
                 <text x="40" y="210">
-                  現在
+                  今月末
                 </text>
                 <text x="660" y="210">
                   {data.years}年後
@@ -446,6 +465,94 @@ function App() {
               )}
             </section>
           </>
+        )}
+        {(tab === 'overview' || tab === 'records') && (
+          <section>
+            <div className="section-heading">
+              <div>
+                <h2>クレカの支払予定</h2>
+                <p>カードごとに、引き落とし日と請求額を登録できます。</p>
+              </div>
+              <strong>
+                {yen(
+                  (data.cardPayments ?? []).reduce((s, p) => s + p.amount, 0),
+                )}
+                <small style={{ display: 'block' }}>未払い合計</small>
+              </strong>
+            </div>
+            <p className="hint">
+              登録した金額は毎月の支出見込みに追加して差し引きます。同じ請求分を毎月の支出・大きな出費・収支記録へ重複して入れないでください。登録だけでは現在の資産合計は変わりません。
+            </p>
+            <form onSubmit={(e) => add(e, 'card')}>
+              <label>
+                カード名・メモ
+                <input
+                  name="name"
+                  required
+                  maxLength={100}
+                  placeholder="例：楽天カード 10月請求"
+                />
+              </label>
+              <label>
+                支払日
+                <input name="date" type="date" min={today()} required />
+              </label>
+              <label>
+                支払予定額（円）
+                <input
+                  name="amount"
+                  type="number"
+                  min="0"
+                  max="1000000000000"
+                  step="1"
+                  required
+                />
+              </label>
+              <button className="action">支払予定を追加</button>
+            </form>
+            {(data.cardPayments ?? []).length === 0 ? (
+              <p className="empty">クレカの支払予定はまだありません。</p>
+            ) : (
+              (data.cardPayments ?? [])
+                .toSorted((a, b) => a.date.localeCompare(b.date))
+                .map((p) => (
+                  <div className="row" key={p.id}>
+                    <div>
+                      <b>{p.name}</b>
+                      <small>
+                        {p.date}
+                        {p.date < today()
+                          ? ' · 支払日を過ぎています'
+                          : p.date === today()
+                            ? ' · 本日支払い'
+                            : ''}
+                      </small>
+                    </div>
+                    <strong>{yen(p.amount)}</strong>
+                    <button
+                      disabled={p.date > today()}
+                      onClick={() =>
+                        setPending({
+                          text: `${p.name} ${yen(p.amount)}を支払い済みにし、今日の支出に記録しますか？`,
+                          run: () => setData((d) => payCard(d, p.id)),
+                        })
+                      }
+                    >
+                      支払い済みにする
+                    </button>
+                    <button
+                      onClick={() => remove('cardPayments', p.id)}
+                      aria-label={`${p.name}の支払予定を削除`}
+                    >
+                      削除
+                    </button>
+                  </div>
+                ))
+            )}
+            <p className="hint">
+              支払日以降に「支払い済みにする」を押すと、今日の支出として1回だけ記録します。過去の未払いも今月の見通しに含めます。未来の支払日ではこのボタンは使えません。
+            </p>
+          </section>
         )}
         {tab === 'records' && (
           <>

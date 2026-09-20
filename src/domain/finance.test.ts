@@ -1,6 +1,43 @@
 import { describe, it, expect } from 'vitest'
-import { balance, emptyData, forecast, today, validData } from './finance'
+import {
+  balance,
+  emptyData,
+  forecast,
+  today,
+  validData,
+  payCard,
+} from './finance'
 describe('household calculations', () => {
+  it('includes current and future card bills once without changing assets until paid', () => {
+    const d = emptyData()
+    d.assets = [{ id: 'a', name: '預金', amount: 100000 }]
+    d.years = 1
+    const next = forecast(d)[1].month
+    d.cardPayments = [
+      { id: 'c', name: 'カード', date: today(), amount: 10000 },
+      { id: 'n', name: '翌月', date: `${next}-10`, amount: 20000 },
+    ]
+    expect(balance(d)).toBe(100000)
+    expect(forecast(d)[0].balance).toBe(90000)
+    expect(forecast(d)[1].balance).toBe(70000)
+    const paid = payCard(d, 'c')
+    expect(balance(paid)).toBe(90000)
+    expect(forecast(paid)[1].balance).toBe(70000)
+    expect(payCard(paid, 'c')).toEqual(paid)
+  })
+  it('accepts old backups and rejects malformed card bills', () => {
+    const d = emptyData()
+    delete d.cardPayments
+    expect(validData(d)).toBe(true)
+    expect(
+      validData({
+        ...d,
+        cardPayments: [
+          { id: 'c', name: 'カード', date: '2026-02-30', amount: 1 },
+        ],
+      }),
+    ).toBe(false)
+  })
   it('applies recorded transactions once, then monthly assumptions from next month', () => {
     const d = emptyData()
     d.assets = [{ id: 'a', name: '銀行', amount: 100000 }]

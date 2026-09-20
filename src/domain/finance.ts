@@ -7,12 +7,19 @@ export type Transaction = {
   amount: number
 }
 export type Plan = { id: string; month: string; name: string; amount: number }
+export type CardPayment = {
+  id: string
+  date: string
+  name: string
+  amount: number
+}
 export type Data = {
   version: 1
   baseDate: string
   assets: Asset[]
   transactions: Transaction[]
   plans: Plan[]
+  cardPayments?: CardPayment[]
   income: number
   expense: number
   years: number
@@ -27,6 +34,7 @@ export const emptyData = (): Data => ({
   assets: [],
   transactions: [],
   plans: [],
+  cardPayments: [],
   income: 0,
   expense: 0,
   years: 5,
@@ -40,6 +48,10 @@ export function forecast(d: Data) {
   const start = today().slice(0, 7)
   const [year, month] = start.split('-').map(Number)
   let value = balance(d)
+  const cards = d.cardPayments ?? []
+  value -= cards
+    .filter((p) => p.date.slice(0, 7) <= start)
+    .reduce((s, p) => s + p.amount, 0)
   const points = [{ month: start, balance: value }]
   for (let i = 1; i <= d.years * 12; i++) {
     const date = new Date(year, month - 1 + i, 1)
@@ -47,7 +59,10 @@ export function forecast(d: Data) {
     value +=
       d.income -
       d.expense -
-      d.plans.filter((p) => p.month === key).reduce((s, p) => s + p.amount, 0)
+      d.plans.filter((p) => p.month === key).reduce((s, p) => s + p.amount, 0) -
+      cards
+        .filter((p) => p.date.slice(0, 7) === key)
+        .reduce((s, p) => s + p.amount, 0)
     points.push({ month: key, balance: value })
   }
   return points
@@ -75,6 +90,12 @@ export function validData(value: unknown): value is Data {
     Number.isInteger(d.years) &&
     d.years >= 1 &&
     d.years <= 30 &&
+    (d.cardPayments === undefined ||
+      (Array.isArray(d.cardPayments) &&
+        d.cardPayments.every(
+          (p) =>
+            p && text(p.id) && text(p.name) && money(p.amount) && date(p.date),
+        ))) &&
     Array.isArray(d.assets) &&
     d.assets.every((a) => a && text(a.id) && text(a.name) && money(a.amount)) &&
     Array.isArray(d.transactions) &&
@@ -99,4 +120,22 @@ export function validData(value: unknown): value is Data {
         /^\d{4}-(0[1-9]|1[0-2])$/.test(p.month),
     )
   )
+}
+export function payCard(d: Data, id: string): Data {
+  const payment = d.cardPayments?.find((p) => p.id === id)
+  if (!payment) return d
+  return {
+    ...d,
+    cardPayments: d.cardPayments?.filter((p) => p.id !== id),
+    transactions: [
+      ...d.transactions,
+      {
+        id: payment.id,
+        name: `クレカ支払い：${payment.name}`,
+        date: today(),
+        kind: 'expense',
+        amount: payment.amount,
+      },
+    ],
+  }
 }
