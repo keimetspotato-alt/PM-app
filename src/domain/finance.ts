@@ -23,6 +23,7 @@ export type Data = {
   income: number
   expense: number
   years: number
+  targetMonths?: number
 }
 export const today = () => {
   const d = new Date()
@@ -44,7 +45,9 @@ export const signed = (t: Transaction) =>
 export const balance = (d: Data) =>
   d.assets.reduce((s, a) => s + a.amount, 0) +
   d.transactions.reduce((s, t) => s + signed(t), 0)
-export function forecast(d: Data) {
+export function forecast(d: Data, months = d.years * 12) {
+  if (!Number.isInteger(months) || months < 1 || months > 360)
+    throw new RangeError('期間は1〜360か月で指定してください')
   const start = today().slice(0, 7)
   const [year, month] = start.split('-').map(Number)
   let value = balance(d)
@@ -53,7 +56,7 @@ export function forecast(d: Data) {
     .filter((p) => p.date.slice(0, 7) <= start)
     .reduce((s, p) => s + p.amount, 0)
   const points = [{ month: start, balance: value }]
-  for (let i = 1; i <= d.years * 12; i++) {
+  for (let i = 1; i <= months; i++) {
     const date = new Date(year, month - 1 + i, 1)
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
     value +=
@@ -90,6 +93,10 @@ export function validData(value: unknown): value is Data {
     Number.isInteger(d.years) &&
     d.years >= 1 &&
     d.years <= 30 &&
+    (d.targetMonths === undefined ||
+      (Number.isInteger(d.targetMonths) &&
+        d.targetMonths >= 1 &&
+        d.targetMonths <= 360)) &&
     (d.cardPayments === undefined ||
       (Array.isArray(d.cardPayments) &&
         d.cardPayments.every(

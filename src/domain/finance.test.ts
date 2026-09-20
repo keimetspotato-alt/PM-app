@@ -8,6 +8,24 @@ import {
   payCard,
 } from './finance'
 describe('household calculations', () => {
+  it('calculates a specified number of months including scheduled payments beyond the chart range', () => {
+    const d = emptyData()
+    d.years = 1
+    d.income = 30000
+    d.expense = 20000
+    d.assets = [{ id: 'a', name: '預金', amount: 100000 }]
+    const month = forecast(d, 18)[18].month
+    d.plans = [{ id: 'p', name: '旅行', month, amount: 50000 }]
+    d.cardPayments = [
+      { id: 'c', name: 'カード', date: `${month}-10`, amount: 20000 },
+    ]
+    expect(forecast(d, 1).at(-1)?.balance).toBe(110000)
+    expect(forecast(d, 18).at(-1)?.balance).toBe(210000)
+    expect(forecast(d, 360)).toHaveLength(361)
+    expect(() => forecast(d, 0)).toThrow(RangeError)
+    expect(validData({ ...d, targetMonths: 18 })).toBe(true)
+    expect(validData({ ...d, targetMonths: 1.5 })).toBe(false)
+  })
   it('includes current and future card bills once without changing assets until paid', () => {
     const d = emptyData()
     d.assets = [{ id: 'a', name: '預金', amount: 100000 }]

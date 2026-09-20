@@ -60,6 +60,8 @@ function App() {
     current = balance(data),
     last = points[points.length - 1],
     deficit = points.find((p) => p.balance < 0)
+  const targetMonths = data.targetMonths ?? 6
+  const targetBalance = forecast(data, targetMonths).at(-1)!
   const max = Math.max(...points.map((p) => p.balance), 1),
     min = Math.min(...points.map((p) => p.balance), 0),
     range = max - min
@@ -270,11 +272,32 @@ function App() {
                 </small>
               </article>
               <article className="stat">
-                <p>{data.years}年後の残高</p>
-                <strong className={last.balance < 0 ? 'negative' : ''}>
-                  {yen(last.balance)}
+                <label>
+                  何か月後の残高を見ますか？
+                  <input
+                    type="number"
+                    min="1"
+                    max="360"
+                    step="1"
+                    value={targetMonths}
+                    onChange={(e) => {
+                      const n = Number(e.target.value)
+                      if (Number.isInteger(n) && n >= 1 && n <= 360)
+                        update({ targetMonths: n })
+                    }}
+                  />
+                </label>
+                <p style={{ marginTop: 12 }}>{targetMonths}か月後の残高</p>
+                <strong
+                  className={targetBalance.balance < 0 ? 'negative' : ''}
+                  aria-live="polite"
+                >
+                  {yen(targetBalance.balance)}
                 </strong>
-                <small>{last.month.replace('-', '年')}月の見込み</small>
+                <small>
+                  {targetBalance.month.replace('-', '年')}
+                  月末の見込み（1〜360か月）
+                </small>
               </article>
             </div>
             <section>
