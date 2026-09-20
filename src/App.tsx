@@ -8,9 +8,11 @@ import {
   today,
   validData,
   payCard,
+  withMonthlyItems,
 } from './domain/finance'
 import type { Data } from './domain/finance'
 import './App.css'
+import { MonthlyBudget } from './MonthlyBudget'
 const KEY = 'pm-app.finance.v1'
 const yen = (n: number) =>
   new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(
@@ -21,7 +23,7 @@ function initial() {
     const raw = localStorage.getItem(KEY)
     if (!raw) return { data: emptyData(), error: '' }
     const parsed: unknown = JSON.parse(raw)
-    if (validData(parsed)) return { data: parsed, error: '' }
+    if (validData(parsed)) return { data: withMonthlyItems(parsed), error: '' }
   } catch {
     /* keep existing storage intact */
   }
@@ -85,7 +87,7 @@ function App() {
       )
       return
     }
-    setData(next)
+    setData(withMonthlyItems(next))
     setEditing(null)
     setMessage('変更を保存しました。')
   }
@@ -210,7 +212,7 @@ function App() {
       setPending({
         text: '現在のデータをバックアップの内容で置き換えますか？',
         run: () => {
-          setData(next)
+          setData(withMonthlyItems(next))
           setBlocked(false)
           setMessage('バックアップを復元しました。')
         },
@@ -387,6 +389,7 @@ function App() {
           {[
             ['overview', '見通し'],
             ['records', '資産・収支'],
+            ['budget', '毎月の内訳'],
             ['settings', '設定・バックアップ'],
           ].map(([id, label]) => (
             <button
@@ -510,37 +513,20 @@ function App() {
                 </p>
               )}
               <div className="assumptions">
-                <label>
-                  毎月の手取り収入（円）
-                  <input
-                    type="number"
-                    min="0"
-                    max="1000000000000"
-                    step="1"
-                    value={data.income}
-                    onChange={(e) => {
-                      const n = Number(e.target.value)
-                      if (Number.isSafeInteger(n) && n >= 0 && n <= 1e12)
-                        update({ income: n })
-                    }}
-                  />
-                </label>
-                <label>
-                  毎月の支出（円）
-                  <input
-                    type="number"
-                    min="0"
-                    max="1000000000000"
-                    step="1"
-                    value={data.expense}
-                    onChange={(e) => {
-                      const n = Number(e.target.value)
-                      if (Number.isSafeInteger(n) && n >= 0 && n <= 1e12)
-                        update({ expense: n })
-                    }}
-                  />
-                </label>
+                <div>
+                  毎月の手取り収入
+                  <strong style={{ display: 'block' }}>
+                    {yen(data.income)}
+                  </strong>
+                </div>
+                <div>
+                  毎月の支出
+                  <strong style={{ display: 'block' }}>
+                    {yen(data.expense)}
+                  </strong>
+                </div>
               </div>
+              <button onClick={() => setTab('budget')}>毎月の内訳を設定</button>
               <p className="hint">
                 毎月同じ収支が続く単純計算です。運用益・物価変動・税金の追加計算は含みません。記録済みの収支は現在残高にのみ反映し、毎月の見込みとは別に扱います。
               </p>
@@ -904,6 +890,12 @@ function App() {
               )}
             </section>
           </>
+        )}
+        {tab === 'budget' && (
+          <MonthlyBudget
+            items={withMonthlyItems(data).monthlyItems ?? []}
+            onChange={(items) => setData((d) => withMonthlyItems(d, items))}
+          />
         )}
         {tab === 'settings' && (
           <section>

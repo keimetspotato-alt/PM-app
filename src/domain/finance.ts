@@ -1,4 +1,11 @@
 export type Asset = { id: string; name: string; amount: number }
+export type MonthlyItem = {
+  id: string
+  name: string
+  amount: number
+  kind: 'income' | 'expense'
+  category: string
+}
 export type Transaction = {
   id: string
   date: string
@@ -24,6 +31,7 @@ export type Data = {
   expense: number
   years: number
   targetMonths?: number
+  monthlyItems?: MonthlyItem[]
 }
 export const today = () => {
   const d = new Date()
@@ -93,6 +101,17 @@ export function validData(value: unknown): value is Data {
     Number.isInteger(d.years) &&
     d.years >= 1 &&
     d.years <= 30 &&
+    (d.monthlyItems === undefined ||
+      (Array.isArray(d.monthlyItems) &&
+        d.monthlyItems.every(
+          (i) =>
+            i &&
+            text(i.id) &&
+            text(i.name) &&
+            text(i.category) &&
+            money(i.amount) &&
+            ['income', 'expense'].includes(i.kind),
+        ))) &&
     (d.targetMonths === undefined ||
       (Number.isInteger(d.targetMonths) &&
         d.targetMonths >= 1 &&
@@ -127,6 +146,43 @@ export function validData(value: unknown): value is Data {
         /^\d{4}-(0[1-9]|1[0-2])$/.test(p.month),
     )
   )
+}
+export function withMonthlyItems(d: Data, items?: MonthlyItem[]): Data {
+  const monthlyItems = items ??
+    d.monthlyItems ?? [
+      ...(d.income
+        ? [
+            {
+              id: 'legacy-income',
+              name: 'これまでの手取り収入',
+              amount: d.income,
+              kind: 'income' as const,
+              category: '未分類',
+            },
+          ]
+        : []),
+      ...(d.expense
+        ? [
+            {
+              id: 'legacy-expense',
+              name: 'これまでの毎月の支出',
+              amount: d.expense,
+              kind: 'expense' as const,
+              category: '未分類',
+            },
+          ]
+        : []),
+    ]
+  return {
+    ...d,
+    monthlyItems,
+    income: monthlyItems
+      .filter((i) => i.kind === 'income')
+      .reduce((s, i) => s + i.amount, 0),
+    expense: monthlyItems
+      .filter((i) => i.kind === 'expense')
+      .reduce((s, i) => s + i.amount, 0),
+  }
 }
 export function payCard(d: Data, id: string): Data {
   const payment = d.cardPayments?.find((p) => p.id === id)

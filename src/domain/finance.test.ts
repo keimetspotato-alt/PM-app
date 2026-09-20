@@ -6,8 +6,36 @@ import {
   today,
   validData,
   payCard,
+  withMonthlyItems,
 } from './finance'
 describe('household calculations', () => {
+  it('preserves old totals during migration and recalculates edited and deleted monthly items', () => {
+    const d = { ...emptyData(), income: 300000, expense: 180000 }
+    const migrated = withMonthlyItems(d)
+    expect(migrated.monthlyItems).toHaveLength(2)
+    expect(migrated.income).toBe(300000)
+    expect(migrated.expense).toBe(180000)
+    expect(withMonthlyItems(migrated)).toEqual(migrated)
+    const detailed = withMonthlyItems(d, [
+      {
+        id: 'i',
+        name: '給与',
+        kind: 'income',
+        category: '給与',
+        amount: 300000,
+      },
+      { id: 'e', name: 'AI', kind: 'expense', category: 'AI', amount: 3000 },
+    ])
+    expect(detailed.expense).toBe(3000)
+    expect(forecast(detailed, 1)[1].balance).toBe(297000)
+    expect(withMonthlyItems(detailed, []).income).toBe(0)
+    expect(
+      validData({
+        ...detailed,
+        monthlyItems: [{ ...detailed.monthlyItems![0], category: '' }],
+      }),
+    ).toBe(false)
+  })
   it('calculates a specified number of months including scheduled payments beyond the chart range', () => {
     const d = emptyData()
     d.years = 1

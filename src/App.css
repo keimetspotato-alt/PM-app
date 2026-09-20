@@ -356,3 +356,10 @@ footer {
 .row {
   flex-wrap: wrap;
 }
+
+.tabs {
+  flex-wrap: wrap;
+}
+.tabs button {
+  white-space: nowrap;
+}
