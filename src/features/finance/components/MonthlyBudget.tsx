@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import type { MonthlyItem } from './domain/finance'
+import type { MonthlyItem } from '../domain/finance'
 const yen = (v: number) =>
   new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(
     v,
