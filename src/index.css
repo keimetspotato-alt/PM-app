@@ -1,20 +1,71 @@
 :root {
   font-family: 'Yu Gothic UI', 'Meiryo', sans-serif;
-  color: #183b35;
-  background: #f3f6f2;
+  color: #213e38;
+  background: #f5f7f6;
   font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  line-height: 1.7;
+  line-height: 1.65;
 }
 * {
   box-sizing: border-box;
 }
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: 360px;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 3px solid #72b3a3;
+  outline-offset: 3px;
 }
 h1,
 h2,
 p {
   margin-top: 0;
+}
+button {
+  border: 1px solid #dce4e0;
+  background: white;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #31564b;
+}
+input,
+select {
+  width: 100%;
+  border: 1px solid #cbd8d1;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+  color: #213e38;
+}
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #536c64;
+}
+small {
+  color: #647c73;
+}
+h2 {
+  font-size: 19px;
+  margin-bottom: 10px;
+}
+h1 {
+  font-size: 32px;
+  margin-bottom: 6px;
+}
+svg text {
+  font-size: 12px;
+  fill: #647c73;
 }
