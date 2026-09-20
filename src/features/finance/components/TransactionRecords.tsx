@@ -1,6 +1,7 @@
+import { TransactionFields } from './TransactionFields'
 import { useFinance } from '../model/FinanceContext'
 import { yen } from '../../../shared/format'
-import { today, signed } from '../domain/finance'
+import { today, signed, expenseTotalForMonth } from '../domain/finance'
 export function TransactionRecords() {
   const { data, startEdit, actual, add, remove } = useFinance()
   return (
@@ -14,12 +15,13 @@ export function TransactionRecords() {
               .filter((t) => t.kind === 'income')
               .reduce((s, t) => s + t.amount, 0),
           )}{' '}
-          ／ 支出{' '}
-          {yen(
-            actual
-              .filter((t) => t.kind === 'expense')
-              .reduce((s, t) => s + t.amount, 0),
-          )}
+          ／ 支出 {yen(expenseTotalForMonth(data, today().slice(0, 7)))}
+        </p>
+        <p className="hint">
+          集計にはカード利用と、引き落とし済み請求の内訳未登録分を含みます。
+        </p>
+        <p className="hint">
+          カード払いは利用日の支出として記録します。残高は引き落とし済みにした時だけ減ります。以前の記録は残高に反映済みとして維持しています。カード利用分だった場合は「編集」で支払方法と請求を指定してください。
         </p>
         <form onSubmit={(e) => add(e, 'transaction')}>
           <label>
@@ -33,13 +35,7 @@ export function TransactionRecords() {
               required
             />
           </label>
-          <label>
-            種類
-            <select name="kind">
-              <option value="expense">支出</option>
-              <option value="income">収入</option>
-            </select>
-          </label>
+          <TransactionFields />
           <label>
             内容
             <input
@@ -72,7 +68,15 @@ export function TransactionRecords() {
                 <div>
                   <b>{t.name}</b>
                   <small>
-                    {t.date} · {t.kind === 'income' ? '収入' : '支出'}
+                    {t.date} · {t.kind === 'income' ? '収入' : '支出'} ·{' '}
+                    {t.category ?? '未分類'} ·{' '}
+                    {t.paymentMethod === 'card'
+                      ? 'クレカ（利用）'
+                      : t.paymentMethod === 'bank'
+                        ? '銀行'
+                        : t.paymentMethod === 'cash'
+                          ? '現金'
+                          : '現金・銀行（既存記録）'}
                   </small>
                 </div>
                 <strong

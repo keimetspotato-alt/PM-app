@@ -21,7 +21,7 @@ export function ForecastPage() {
         <article className="stat primary">
           <p>現在の資産合計</p>
           <strong>{yen(current)}</strong>
-          <small>基準資産 ＋ 記録した収支</small>
+          <small>現金・預金の残高（カード利用時は減算しません）</small>
         </article>
         <article className="stat">
           <p>毎月の収支見込み</p>
@@ -82,9 +82,7 @@ export function ForecastPage() {
           </label>
         </div>
         {data.assets.length === 0 && (
-          <p className="empty">
-            最初に「資産・収支」で現在の資産を登録しましょう。
-          </p>
+          <p className="empty">最初に「資産」で現在の資産を登録しましょう。</p>
         )}
         <svg
           viewBox="0 0 760 220"
@@ -133,7 +131,7 @@ export function ForecastPage() {
         </div>
         <button onClick={() => setTab('budget')}>毎月の内訳を設定</button>
         <p className="hint">
-          毎月同じ収支が続く単純計算です。運用益・物価変動・税金の追加計算は含みません。記録済みの収支は現在残高にのみ反映し、毎月の見込みとは別に扱います。
+          毎月同じ収支が続く単純計算です。運用益・物価変動・税金の追加計算は含みません。カード利用は引き落とし時に残高へ反映します。請求に対応づけた月額予算は、その支払月のみ請求額へ置き換えます。未対応の予算・臨時支出との重複は自動判定しません。
         </p>
         <details>
           <summary>年ごとの残高を見る</summary>

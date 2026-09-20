@@ -1,3 +1,5 @@
+import { TransactionFields } from './TransactionFields'
+import { BillBudgetFields } from './BillBudgetFields'
 import { useFinance } from '../model/FinanceContext'
 import { today } from '../domain/finance'
 export function FinanceDialogs() {
@@ -82,14 +84,11 @@ export function FinanceDialogs() {
                   />
                 </label>
               )}
-              {editing.kind !== undefined && (
-                <label>
-                  種類
-                  <select name="kind" defaultValue={editing.kind}>
-                    <option value="expense">支出</option>
-                    <option value="income">収入</option>
-                  </select>
-                </label>
+              {editing.collection === 'transactions' && (
+                <TransactionFields initial={editing} />
+              )}
+              {editing.collection === 'cardPayments' && (
+                <BillBudgetFields selected={editing.coveredMonthlyItemIds} />
               )}
               {editError && <p role="alert">{editError}</p>}
               <div>

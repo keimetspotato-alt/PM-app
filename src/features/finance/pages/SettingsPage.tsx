@@ -28,7 +28,7 @@ export function SettingsPage() {
           </label>
         </div>
         <p className="hint">
-          登録した項目は「編集」から変更できます。基準日は収支の記録後には変更できません。
+          登録した項目は「編集」から変更できます。基準日は収支の記録後・クレカ引き落とし後には変更できません。
         </p>
       </section>
     </>

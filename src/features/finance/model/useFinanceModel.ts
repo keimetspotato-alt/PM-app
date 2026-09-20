@@ -7,7 +7,7 @@ import {
   validData,
   withMonthlyItems,
 } from '../domain/finance'
-import type { Data } from '../domain/finance'
+import type { Data, PaymentMethod } from '../domain/finance'
 import type { FinancePageId } from '../navigation'
 import { loadFinance, saveFinance } from '../storage/financeStorage'
 export function useFinanceModel() {
@@ -25,6 +25,11 @@ export function useFinanceModel() {
     date?: string
     month?: string
     kind?: 'income' | 'expense'
+    category?: string
+    paymentMethod?: PaymentMethod
+    cardPaymentId?: string
+    paidDate?: string
+    coveredMonthlyItemIds?: string[]
   } | null>(null)
   const [editError, setEditError] = useState('')
   function startEdit(
@@ -32,6 +37,20 @@ export function useFinanceModel() {
     id: string,
   ) {
     const item = data[collection]?.find((item) => item.id === id)
+    if (
+      item &&
+      ((collection === 'cardPayments' && 'paidDate' in item && item.paidDate) ||
+        (collection === 'transactions' &&
+          'cardPaymentId' in item &&
+          data.cardPayments?.some(
+            (p) => p.id === item.cardPaymentId && p.paidDate,
+          )))
+    ) {
+      setMessage(
+        '支払い済みの記録は、先に請求を未払いに戻してから編集してください。',
+      )
+      return
+    }
     if (item) {
       setEditError('')
       setEditing({ collection, ...item })
@@ -42,6 +61,23 @@ export function useFinanceModel() {
     if (!editing) return
     const form = new FormData(e.currentTarget)
     const patch = {
+      ...(editing.collection === 'transactions'
+        ? {
+            category: String(form.get('category') ?? '未分類').trim(),
+            paymentMethod: form.get('paymentMethod') as PaymentMethod,
+            cardPaymentId:
+              form.get('paymentMethod') === 'card'
+                ? String(form.get('cardPaymentId'))
+                : undefined,
+          }
+        : {}),
+      ...(editing.collection === 'cardPayments'
+        ? {
+            coveredMonthlyItemIds: form
+              .getAll('coveredMonthlyItemIds')
+              .map(String),
+          }
+        : {}),
       name: String(form.get('name')).trim(),
       amount: Number(form.get('amount')),
       ...(editing.date !== undefined ? { date: String(form.get('date')) } : {}),
@@ -60,7 +96,7 @@ export function useFinanceModel() {
     }
     if (!validData(next)) {
       setEditError(
-        '名前・日付・金額を確認してください。金額は0以上の整数で入力してください。',
+        '入力を確認してください。カード利用日は支払日以前、利用額の合計は請求額以下にしてください。',
       )
       return
     }
@@ -121,7 +157,15 @@ export function useFinanceModel() {
       update({
         cardPayments: [
           ...(data.cardPayments ?? []),
-          { id, name, amount, date },
+          {
+            id,
+            name,
+            amount,
+            date,
+            coveredMonthlyItemIds: f
+              .getAll('coveredMonthlyItemIds')
+              .map(String),
+          },
         ],
       })
     }
@@ -133,7 +177,9 @@ export function useFinanceModel() {
         setMessage('記録日は資産の基準日から今日までにしてください。')
         return
       }
-      update({
+      const paymentMethod = f.get('paymentMethod') as PaymentMethod
+      const next = {
+        ...data,
         transactions: [
           ...data.transactions,
           {
@@ -142,9 +188,28 @@ export function useFinanceModel() {
             amount,
             date,
             kind: f.get('kind') as 'income' | 'expense',
+            category: String(f.get('category') ?? '未分類').trim(),
+            paymentMethod,
+            cardPaymentId:
+              paymentMethod === 'card'
+                ? String(f.get('cardPaymentId'))
+                : undefined,
           },
         ],
-      })
+      }
+      if (
+        !validData(next) ||
+        (paymentMethod === 'card' &&
+          data.cardPayments?.some(
+            (p) => p.id === f.get('cardPaymentId') && p.paidDate,
+          ))
+      ) {
+        setMessage(
+          'カード請求との対応を確認してください。利用日は支払日以前、利用額の合計は請求額以下で登録してください。',
+        )
+        return
+      }
+      setData(next)
     }
     if (kind === 'plan') {
       const planMonth = String(f.get('month'))
@@ -161,6 +226,29 @@ export function useFinanceModel() {
     collection: 'assets' | 'transactions' | 'plans' | 'cardPayments',
     id: string,
   ) {
+    if (
+      collection === 'cardPayments' &&
+      (data.cardPayments?.some((p) => p.id === id && p.paidDate) ||
+        data.transactions.some((t) => t.cardPaymentId === id))
+    ) {
+      setMessage(
+        '請求を削除する前に、支払い済みを解除し、紐づく利用記録を変更・削除してください。',
+      )
+      return
+    }
+    if (
+      collection === 'transactions' &&
+      data.transactions.some(
+        (t) =>
+          t.id === id &&
+          data.cardPayments?.some(
+            (p) => p.id === t.cardPaymentId && p.paidDate,
+          ),
+      )
+    ) {
+      setMessage('先に対応する請求を未払いに戻してください。')
+      return
+    }
     setPending({
       text: 'この項目を削除しますか？',
       run: () =>

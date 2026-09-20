@@ -29,7 +29,7 @@ export function MonthlyBudget({
   onChange,
 }: {
   items: MonthlyItem[]
-  onChange: (items: MonthlyItem[]) => void
+  onChange: (items: MonthlyItem[]) => boolean
 }) {
   const [edit, setEdit] = useState<MonthlyItem | null>(null)
   const [revision, setRevision] = useState(0)
@@ -65,9 +65,10 @@ export function MonthlyBudget({
       amount,
       kind,
     }
-    onChange(
+    const accepted = onChange(
       edit ? items.map((i) => (i.id === edit.id ? item : i)) : [...items, item],
     )
+    if (!accepted) return
     setEdit(null)
     setRevision((r) => r + 1)
     setError('')
@@ -94,7 +95,7 @@ export function MonthlyBudget({
           ここで設定した月額の合計を将来残高に反映します。実際の収支記録には自動登録しません。年払いは月額換算するか「大きな出費」で管理してください。
         </p>
         <p className="hint">
-          以前の合計金額は「未分類」として引き継いでいます。詳しい内訳を追加する際は、引き継いだ項目を編集・削除して二重計上を防いでください。クレカの支払予定と同じ請求分も重複して設定しないでください。
+          以前の合計金額は「未分類」として引き継いでいます。詳しい内訳を追加する際は、引き継いだ項目を編集・削除して二重計上を防いでください。カード請求が確定したら、クレカ欄で対応する内訳を選ぶと、引き落とし月の予算を請求額に置き換えられます。
         </p>
         <h3>{edit ? '内訳を編集' : '内訳を追加'}</h3>
         <form key={`${edit?.id ?? 'new'}-${revision}`} onSubmit={save}>
@@ -166,7 +167,7 @@ export function MonthlyBudget({
             「{removed.name}」を削除しました。
             <button
               onClick={() => {
-                onChange([...items, removed])
+                if (!onChange([...items, removed])) return
                 setRemoved(null)
               }}
             >
@@ -200,7 +201,8 @@ export function MonthlyBudget({
                     </button>
                     <button
                       onClick={() => {
-                        onChange(items.filter((x) => x.id !== i.id))
+                        if (!onChange(items.filter((x) => x.id !== i.id)))
+                          return
                         setRemoved(i)
                         if (edit?.id === i.id) setEdit(null)
                       }}

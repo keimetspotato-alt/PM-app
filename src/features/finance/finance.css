@@ -363,3 +363,23 @@ footer {
 .tabs button {
   white-space: nowrap;
 }
+
+.bill-budget {
+  flex-basis: 100%;
+  border: 1px solid #dce4e0;
+  border-radius: 8px;
+  padding: 14px;
+}
+.check-label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.check-label input {
+  width: auto;
+}
+.bill {
+  border-bottom: 1px solid #dce4e0;
+  padding-bottom: 12px;
+}

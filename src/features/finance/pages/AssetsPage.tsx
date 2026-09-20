@@ -22,7 +22,10 @@ export function AssetsPage() {
                   )[0].date
                 : today()
             }
-            disabled={data.transactions.length > 0}
+            disabled={
+              data.transactions.length > 0 ||
+              data.cardPayments?.some((p) => Boolean(p.paidDate))
+            }
             onChange={(e) => {
               if (e.target.value && e.target.value <= today())
                 update({ baseDate: e.target.value })
