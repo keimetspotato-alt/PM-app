@@ -1,0 +1,48 @@
+.shell {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 80px 24px;
+}
+.eyebrow {
+  font-weight: 700;
+  color: #337867;
+  letter-spacing: 0.12em;
+}
+h1 {
+  font-size: clamp(28px, 5vw, 44px);
+  letter-spacing: -0.03em;
+  margin-bottom: 12px;
+}
+.intro {
+  color: #526b65;
+  margin-bottom: 40px;
+}
+section {
+  background: white;
+  padding: clamp(24px, 5vw, 44px);
+  border: 1px solid #dce5df;
+  border-radius: 20px;
+}
+h2 {
+  font-size: 22px;
+  margin-top: 20px;
+}
+.badge {
+  display: inline-block;
+  background: #e4f1ea;
+  color: #27634e;
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 13px;
+}
+ul {
+  padding-left: 24px;
+}
+li {
+  margin: 10px 0;
+}
+.note {
+  color: #60766e;
+  font-size: 14px;
+  margin: 24px 0 0;
+}
