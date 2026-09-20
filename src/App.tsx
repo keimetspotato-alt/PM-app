@@ -38,6 +38,57 @@ function App() {
   const [message, setMessage] = useState(loaded.error)
   const [tab, setTab] = useState('overview')
   const [saved, setSaved] = useState(false)
+  const [editing, setEditing] = useState<{
+    collection: 'assets' | 'transactions' | 'plans' | 'cardPayments'
+    id: string
+    name: string
+    amount: number
+    date?: string
+    month?: string
+    kind?: 'income' | 'expense'
+  } | null>(null)
+  const [editError, setEditError] = useState('')
+  function startEdit(
+    collection: 'assets' | 'transactions' | 'plans' | 'cardPayments',
+    id: string,
+  ) {
+    const item = data[collection]?.find((item) => item.id === id)
+    if (item) {
+      setEditError('')
+      setEditing({ collection, ...item })
+    }
+  }
+  function saveEdit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!editing) return
+    const form = new FormData(e.currentTarget)
+    const patch = {
+      name: String(form.get('name')).trim(),
+      amount: Number(form.get('amount')),
+      ...(editing.date !== undefined ? { date: String(form.get('date')) } : {}),
+      ...(editing.month !== undefined
+        ? { month: String(form.get('month')) }
+        : {}),
+      ...(editing.kind !== undefined
+        ? { kind: form.get('kind') as 'income' | 'expense' }
+        : {}),
+    }
+    const next = {
+      ...data,
+      [editing.collection]: (data[editing.collection] ?? []).map((item) =>
+        item.id === editing.id ? { ...item, ...patch } : item,
+      ),
+    }
+    if (!validData(next)) {
+      setEditError(
+        '名前・日付・金額を確認してください。金額は0以上の整数で入力してください。',
+      )
+      return
+    }
+    setData(next)
+    setEditing(null)
+    setMessage('変更を保存しました。')
+  }
   const [pending, setPending] = useState<{
     text: string
     run: () => void
@@ -194,6 +245,102 @@ function App() {
         </div>
       </aside>
       <main>
+        {editing && (
+          <div
+            className="confirmation"
+            role="dialog"
+            aria-modal="true"
+            aria-label="登録内容を編集"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setEditing(null)
+            }}
+          >
+            <div>
+              <h2>登録内容を編集</h2>
+              <form
+                key={`${editing.collection}-${editing.id}`}
+                onSubmit={saveEdit}
+              >
+                <label>
+                  名前・内容
+                  <input
+                    autoFocus
+                    name="name"
+                    required
+                    maxLength={
+                      editing.collection === 'cardPayments' ? 100 : 120
+                    }
+                    defaultValue={editing.name}
+                  />
+                </label>
+                <label>
+                  金額（円）
+                  <input
+                    name="amount"
+                    type="number"
+                    required
+                    min="0"
+                    max="1000000000000"
+                    step="1"
+                    defaultValue={editing.amount}
+                  />
+                </label>
+                {editing.date !== undefined && (
+                  <label>
+                    {editing.collection === 'cardPayments'
+                      ? '支払日'
+                      : '記録日'}
+                    <input
+                      name="date"
+                      type="date"
+                      required
+                      min={
+                        editing.collection === 'transactions'
+                          ? data.baseDate
+                          : undefined
+                      }
+                      max={
+                        editing.collection === 'transactions'
+                          ? today()
+                          : undefined
+                      }
+                      defaultValue={editing.date}
+                    />
+                  </label>
+                )}
+                {editing.month !== undefined && (
+                  <label>
+                    予定月
+                    <input
+                      name="month"
+                      type="month"
+                      required
+                      defaultValue={editing.month}
+                    />
+                  </label>
+                )}
+                {editing.kind !== undefined && (
+                  <label>
+                    種類
+                    <select name="kind" defaultValue={editing.kind}>
+                      <option value="expense">支出</option>
+                      <option value="income">収入</option>
+                    </select>
+                  </label>
+                )}
+                {editError && <p role="alert">{editError}</p>}
+                <div>
+                  <button type="button" onClick={() => setEditing(null)}>
+                    キャンセル
+                  </button>
+                  <button className="action" type="submit">
+                    変更を保存
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
         {pending && (
           <div
             className="confirmation"
@@ -478,6 +625,12 @@ function App() {
                       </div>
                       <strong>{yen(p.amount)}</strong>
                       <button
+                        onClick={() => startEdit('plans', p.id)}
+                        aria-label={`${p.name}を編集`}
+                      >
+                        編集
+                      </button>
+                      <button
                         onClick={() => remove('plans', p.id)}
                         aria-label={`${p.name}を削除`}
                       >
@@ -564,6 +717,12 @@ function App() {
                       支払い済みにする
                     </button>
                     <button
+                      onClick={() => startEdit('cardPayments', p.id)}
+                      aria-label={`${p.name}の支払予定を編集`}
+                    >
+                      編集
+                    </button>
+                    <button
                       onClick={() => remove('cardPayments', p.id)}
                       aria-label={`${p.name}の支払予定を削除`}
                     >
@@ -635,6 +794,12 @@ function App() {
                   <div className="row" key={a.id}>
                     <b>{a.name}</b>
                     <strong>{yen(a.amount)}</strong>
+                    <button
+                      onClick={() => startEdit('assets', a.id)}
+                      aria-label={`${a.name}を編集`}
+                    >
+                      編集
+                    </button>
                     <button
                       onClick={() => remove('assets', a.id)}
                       aria-label={`${a.name}を削除`}
@@ -723,6 +888,12 @@ function App() {
                         {yen(signed(t))}
                       </strong>
                       <button
+                        onClick={() => startEdit('transactions', t.id)}
+                        aria-label={`${t.name}を編集`}
+                      >
+                        編集
+                      </button>
+                      <button
                         onClick={() => remove('transactions', t.id)}
                         aria-label={`${t.name}を削除`}
                       >
@@ -760,7 +931,7 @@ function App() {
               </label>
             </div>
             <p className="hint">
-              誤った項目は「削除」して再登録できます。基準日は収支の記録後には変更できません。
+              登録した項目は「編集」から変更できます。基準日は収支の記録後には変更できません。
             </p>
           </section>
         )}
