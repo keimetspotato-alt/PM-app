@@ -15,7 +15,7 @@ export function useFinanceModel() {
   const [data, setData] = useState<Data>(loaded.data)
   const [blocked, setBlocked] = useState(Boolean(loaded.error))
   const [message, setMessage] = useState(loaded.error)
-  const [tab, setTab] = useState<FinancePageId>('dashboard')
+  const [tab, setTab] = useState<FinancePageId>('forecast')
   const [saved, setSaved] = useState(false)
   const [editing, setEditing] = useState<{
     collection: 'assets' | 'transactions' | 'plans' | 'cardPayments'

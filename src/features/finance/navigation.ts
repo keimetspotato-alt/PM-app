@@ -1,10 +1,5 @@
 export const financePages = [
   {
-    id: 'dashboard',
-    label: 'ダッシュボード',
-    description: '家計全体の状態と、次に確認したいこと。',
-  },
-  {
     id: 'forecast',
     label: '見通し',
     description: '計算条件と予定から、将来の残高を確認。',

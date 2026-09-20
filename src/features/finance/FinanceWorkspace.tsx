@@ -1,4 +1,3 @@
-import { DashboardPage } from './pages/DashboardPage'
 import { ForecastPage } from './pages/ForecastPage'
 import { AssetsPage } from './pages/AssetsPage'
 import { TransactionsPage } from './pages/TransactionsPage'
@@ -9,8 +8,9 @@ import { financePages } from './navigation'
 import { useFinance } from './model/FinanceContext'
 import './finance.css'
 export function FinanceWorkspace() {
-  const { tab, setTab, saved, message, setMessage } = useFinance()
-  const page = financePages.find((p) => p.id === tab)!
+  const { tab: selectedTab, setTab, saved, message, setMessage } = useFinance()
+  const page = financePages.find((p) => p.id === selectedTab) ?? financePages[0]
+  const tab = page.id
   return (
     <div className="layout">
       <aside>
@@ -66,7 +66,6 @@ export function FinanceWorkspace() {
             </button>
           ))}
         </nav>
-        {tab === 'dashboard' && <DashboardPage />}
         {tab === 'forecast' && <ForecastPage />}
         {tab === 'assets' && <AssetsPage />}
         {tab === 'transactions' && <TransactionsPage />}
