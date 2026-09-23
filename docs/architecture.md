@@ -3,7 +3,7 @@
 ## 全体像
 
 PM-appはお金・予定・行動・目標をまとめるセルフマネジメントアプリです。
-大分類は「家計簿 / カレンダー / タスク / ビジョン」。現在は家計簿のみ実装しています。
+大分類は「家計簿 / カレンダー / タスク / ビジョン」。現在は家計簿とタスクを実装しています。
 家計簿は「見通し」を初期画面とします。
 
 ## 家計簿のページ
@@ -39,7 +39,7 @@ MVPでは既存の自由入力分類を保持します。今回、入力済み�
 
 ## コードの責任分担
 
-- `src/App.tsx`：家計簿の状態を用意して表示する入口。
+- `src/App.tsx`：共通メニューとワークスペース切替。切替中もフォーム状態を保持。
 - `src/features/finance/FinanceWorkspace.tsx`：共通レイアウトとページ切替。
 - `src/features/finance/navigation.ts`：ページID・名称・説明の定義。
 - `src/features/finance/pages/`：5ページ。
@@ -47,7 +47,12 @@ MVPでは既存の自由入力分類を保持します。今回、入力済み�
 - `src/features/finance/model/`：家計簿内で共有する状態と更新操作。
 - `src/features/finance/domain/`：金額計算、データ型、検証、移行、計算テスト。
 - `src/features/finance/storage/`：localStorageとの読み書き。
-- `src/shared/`：用途に依存しない表示処理。
+- `src/shared/`：用途に依存しない表示処理・共通画面スタイル。
+- `src/features/tasks/TasksWorkspace.tsx`：タスクの入力・一覧・状態更新・検索・削除確認。
+- `src/features/tasks/domain/`：親子関係、データ検証、削除規則とテスト。
+- `src/features/tasks/storage/`：家計簿とは独立した保存キーの読み込み。破損時は上書きしない。
+
+タスクは親・子の2階層で、循環・孤立した子・ID重複を拒否します。親の状態は手動管理し、子の完了数は集計表示のみです。期限は日付だけを持ち、カレンダー予定や通知を生成しません。目標・予定との連携は将来、ID参照で拡張します。
 
 新しい機能は `features/calendar`、`features/tasks`、`features/vision` へ分けます。
 未実装の空フォルダや共通化は先に作りません。
