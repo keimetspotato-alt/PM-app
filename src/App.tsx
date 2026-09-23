@@ -4,9 +4,12 @@ import { useFinanceModel } from './features/finance/model/useFinanceModel'
 import { useState } from 'react'
 import { TasksWorkspace } from './features/tasks/TasksWorkspace'
 import './shared/workspace.css'
+import { CalendarWorkspace } from './features/calendar/CalendarWorkspace'
 export default function App() {
   const finance = useFinanceModel()
-  const [workspace, setWorkspace] = useState<'finance' | 'tasks'>('finance')
+  const [workspace, setWorkspace] = useState<'finance' | 'tasks' | 'calendar'>(
+    'finance',
+  )
   return (
     <FinanceContext.Provider value={finance}>
       <div className="layout">
@@ -16,6 +19,12 @@ export default function App() {
           </a>
           <p className="nav-label">WORKSPACE</p>
           <nav className="workspace-nav" aria-label="ワークスペース">
+            <button
+              aria-current={workspace === 'calendar' ? 'page' : undefined}
+              onClick={() => setWorkspace('calendar')}
+            >
+              カレンダー
+            </button>
             <button
               aria-current={workspace === 'finance' ? 'page' : undefined}
               onClick={() => setWorkspace('finance')}
@@ -30,9 +39,6 @@ export default function App() {
             </button>
           </nav>
           <p className="future">
-            カレンダー <small>準備中</small>
-          </p>
-          <p className="future">
             ビジョン管理 <small>準備中</small>
           </p>
         </aside>
@@ -41,6 +47,9 @@ export default function App() {
         </div>
         <div hidden={workspace !== 'tasks'}>
           <TasksWorkspace />
+        </div>
+        <div hidden={workspace !== 'calendar'}>
+          <CalendarWorkspace />
         </div>
       </div>
     </FinanceContext.Provider>
